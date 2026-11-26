@@ -106,7 +106,7 @@ type OrderItem struct {
 }
 type Payment struct {
  Base
- OrderID uint64 `gorm:"not null;index"`
+ OrderID uint64 `gorm:"not null;uniqueIndex"`
  Order Order `json:"-"`
  Method string
  Status string `gorm:"default:pending"`
