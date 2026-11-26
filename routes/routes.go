@@ -25,6 +25,10 @@ func Register(r *gin.Engine, db *gorm.DB) {
  customer.GET("/products/:id",catalog.Detail)
  customer.GET("/categories",catalog.Categories)
  admin:=r.Group("/api/admin",middleware.Authenticate(a),middleware.Admin)
+ inventory:=controllers.Inventory{Service:services.Inventory{DB:db}}
+ admin.GET("/inventory",inventory.List)
+ admin.POST("/inventory/:id/adjust",inventory.Adjust)
+ admin.GET("/inventory/:id/history",inventory.History)
  admin.POST("/products",catalog.Create)
  admin.PUT("/products/:id",catalog.Update)
  admin.DELETE("/products/:id",catalog.Disable)
