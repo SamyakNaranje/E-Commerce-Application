@@ -19,6 +19,17 @@ func Register(r *gin.Engine, db *gorm.DB) {
  r.POST("/api/auth/logout",h.Logout)
  r.GET("/api/auth/me",middleware.Authenticate(a),h.Me)
  r.GET("/api/admin/me",middleware.Authenticate(a),middleware.Admin,h.Me)
+ catalog:=controllers.Catalog{DB:db}
+ customer:=r.Group("/api",middleware.Authenticate(a))
+ customer.GET("/products",catalog.List)
+ customer.GET("/products/:id",catalog.Detail)
+ customer.GET("/categories",catalog.Categories)
+ admin:=r.Group("/api/admin",middleware.Authenticate(a),middleware.Admin)
+ admin.POST("/products",catalog.Create)
+ admin.PUT("/products/:id",catalog.Update)
+ admin.DELETE("/products/:id",catalog.Disable)
+ admin.POST("/categories",catalog.CreateCategory)
+ admin.PUT("/categories/:id",catalog.UpdateCategory)
  r.GET("/",func(c *gin.Context){c.File("views/storefront.html")})
  r.GET("/health",func(c *gin.Context){
   ctx,cancel:=context.WithTimeout(c.Request.Context(), 2*time.Second)
