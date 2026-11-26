@@ -12,10 +12,12 @@ import (
 )
 
 func Register(r *gin.Engine, db *gorm.DB) {
+ r.Use(middleware.Security())
+ limit:=middleware.AuthLimit()
  a:=services.Auth{DB:db}
  h:=controllers.Auth{Service:a}
- r.POST("/api/auth/register",h.Register)
- r.POST("/api/auth/login",h.Login)
+ r.POST("/api/auth/register",limit,h.Register)
+ r.POST("/api/auth/login",limit,h.Login)
  r.POST("/api/auth/logout",h.Logout)
  r.GET("/api/auth/me",middleware.Authenticate(a),h.Me)
  r.GET("/api/admin/me",middleware.Authenticate(a),middleware.Admin,h.Me)
