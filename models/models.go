@@ -115,14 +115,16 @@ type Payment struct {
 }
 type ReturnRequest struct {
  Base
- OrderItemID uint64 `gorm:"not null;index"`
+ OrderItemID uint64 `gorm:"not null;uniqueIndex"`
+ AdminNote string
  OrderItem OrderItem
  Reason string
  Status string `gorm:"default:pending"`
 }
 type Refund struct {
  Base
- ReturnRequestID uint64 `gorm:"not null;index"`
+ ReturnRequestID uint64 `gorm:"not null;uniqueIndex"`
+ Reference string
  ReturnRequest ReturnRequest
  AmountPaise int64 `gorm:"check:amount_paise >= 0"`
  Status string
