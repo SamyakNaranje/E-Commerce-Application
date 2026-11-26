@@ -83,7 +83,12 @@ type Coupon struct {
 }
 type Order struct {
  Base
- UserID uint64 `gorm:"not null;index"`
+ UserID uint64 `gorm:"not null;index;uniqueIndex:checkout_user_key"`
+ CheckoutKey string `gorm:"not null;uniqueIndex:checkout_user_key" json:"-"`
+ SubtotalPaise int64
+ DiscountPaise int64
+ DeliveryChargePaise int64
+ CouponCode string
  User User `json:"-"`
  Status string `gorm:"not null;default:pending"`
  TotalPaise int64 `gorm:"check:total_paise >= 0"`
