@@ -157,3 +157,12 @@ type OrderEvent struct {
  ToStatus string
  ActorID uint64
 }
+
+type Shipment struct {
+ Base
+ OrderID uint64 `gorm:"not null;uniqueIndex" json:"order_id"`
+ Order Order `json:"-"`
+ Courier string `json:"courier"`
+ TrackingNumber string `json:"tracking_number"`
+ ExpectedDelivery *time.Time `json:"expected_delivery"`
+}
