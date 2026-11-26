@@ -37,6 +37,11 @@ func Register(r *gin.Engine, db *gorm.DB) {
  admin.POST("/inventory/:id/adjust",inventory.Adjust)
  admin.GET("/inventory/:id/history",inventory.History)
  checkout:=controllers.Checkout{DB:db}
+ payments:=controllers.Payments{DB:db}
+ customer.GET("/orders/:id/payment",payments.Details)
+ customer.POST("/orders/:id/payment/reference",payments.Reference)
+ admin.GET("/payments",payments.List)
+ admin.POST("/orders/:id/payment/verify",payments.Verify)
  customer.POST("/checkout",checkout.Place)
  admin.POST("/coupons",checkout.CreateCoupon)
  admin.GET("/coupons",checkout.Coupons)
