@@ -2,6 +2,7 @@ package controllers
 
 import (
  "errors"
+ "net/url"
  "strconv"
  "strings"
  "github.com/gin-gonic/gin"
@@ -82,4 +83,19 @@ func (h Catalog) UpdateCategory(c *gin.Context){
  if c.ShouldBindJSON(&in)!=nil || strings.TrimSpace(in.Name)=="" {c.JSON(400,gin.H{"error":"invalid category"});return}
  r:=h.DB.Model(&models.Category{}).Where("id = ?",c.Param("id")).Update("name",strings.TrimSpace(in.Name))
  if r.Error!=nil {catalogError(c,r.Error);return};if r.RowsAffected==0 {catalogError(c,gorm.ErrRecordNotFound);return};c.Status(204)
+}
+
+func(h Catalog) AddImage(c *gin.Context){
+ var in struct{URL string `json:"url" binding:"required,max=2048"`}
+ if c.ShouldBindJSON(&in)!=nil{c.JSON(400,gin.H{"error":"invalid image"});return}
+ u,e:=url.Parse(in.URL)
+ if e!=nil||u.Scheme!="https"||u.Hostname()==""||u.User!=nil{c.JSON(400,gin.H{"error":"HTTPS image URL required"});return}
+ var p models.Product
+ if e:=h.DB.First(&p,"id = ?",c.Param("id")).Error;e!=nil{catalogError(c,e);return}
+ img:=models.ProductImage{ProductID:p.ID,URL:u.String()}
+ if e:=h.DB.Create(&img).Error;e!=nil{catalogError(c,e);return};c.JSON(201,img)
+}
+func(h Catalog) DeleteImage(c *gin.Context){
+ r:=h.DB.Where("id = ? AND product_id = ?",c.Param("image"),c.Param("id")).Delete(&models.ProductImage{})
+ if r.Error!=nil{catalogError(c,r.Error);return};if r.RowsAffected==0{catalogError(c,gorm.ErrRecordNotFound);return};c.Status(204)
 }
