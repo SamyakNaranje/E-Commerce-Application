@@ -48,6 +48,7 @@ func(h Orders) transition(c *gin.Context,next string,admin bool){
  if o.Status==next{return nil}
  var p models.Payment
  if e:=tx.Clauses(clause.Locking{Strength:"UPDATE"}).Where("order_id = ?",o.ID).First(&p).Error;e!=nil{return e}
+ if !allowedOrderTransition(o.Status,next,p.Method,p.Status,admin){return errOrderState}
  switch next{
  case "cancelled":
  if (o.Status!="pending" && o.Status!="confirmed") || p.Status!="pending"{return errOrderState}
@@ -79,4 +80,15 @@ func(h Orders) AdminStatus(c *gin.Context){
  var in struct{Status string `json:"status" binding:"required,oneof=confirmed packed shipped delivered cancelled"`}
  if c.ShouldBindJSON(&in)!=nil{c.JSON(400,gin.H{"error":"invalid status"});return}
  h.transition(c,in.Status,true)
+}
+
+func allowedOrderTransition(current,next,method,payment string,admin bool)bool{
+ switch next{
+ case "cancelled":return (current=="pending" || current=="confirmed") && payment=="pending"
+ case "confirmed":return admin && current=="pending" && method=="cod" && payment=="pending"
+ case "packed":return admin && current=="confirmed" && (payment=="paid" || (method=="cod" && payment=="pending"))
+ case "shipped":return admin && current=="packed" && (payment=="paid" || (method=="cod" && payment=="pending"))
+ case "delivered":return admin && current=="shipped" && (payment=="paid" || (method=="cod" && payment=="pending"))
+ }
+ return false
 }
