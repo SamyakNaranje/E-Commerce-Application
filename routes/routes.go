@@ -91,7 +91,9 @@ func Register(r *gin.Engine, db *gorm.DB) {
  admin.POST("/categories",catalog.CreateCategory)
  admin.PUT("/categories/:id",catalog.UpdateCategory)
  r.StaticFile("/assets/shop.js","assets/shop.js")
- r.GET("/",func(c *gin.Context){c.File("views/shop.html")})
+ r.StaticFile("/assets/storefront.js","assets/storefront.js")
+ r.GET("/",func(c *gin.Context){c.File("views/live-storefront.html")})
+ r.GET("/account",func(c *gin.Context){c.File("views/shop.html")})
  r.GET("/legacy",func(c *gin.Context){c.Redirect(http.StatusTemporaryRedirect,"/")})
  r.GET("/health",func(c *gin.Context){
   ctx,cancel:=context.WithTimeout(c.Request.Context(), 2*time.Second)
