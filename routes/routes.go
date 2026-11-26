@@ -60,6 +60,13 @@ func Register(r *gin.Engine, db *gorm.DB) {
  admin.GET("/delivery-areas",delivery.Areas)
  admin.POST("/delivery-areas",delivery.SaveArea)
  admin.PUT("/delivery-areas/:id",delivery.SaveArea)
+ returns:=controllers.Returns{DB:db}
+ customer.POST("/returns",returns.Request)
+ customer.GET("/returns",returns.List)
+ customer.GET("/refunds",returns.Refunds)
+ admin.GET("/returns",returns.AdminList)
+ admin.PUT("/returns/:id/status",returns.Update)
+ admin.GET("/refunds",returns.Refunds)
  customer.POST("/checkout",checkout.Place)
  admin.POST("/coupons",checkout.CreateCoupon)
  admin.GET("/coupons",checkout.Coupons)
