@@ -131,6 +131,7 @@ type Refund struct {
 }
 type Review struct {
  Base
+ Hidden bool `gorm:"not null;default:false" json:"-"`
  UserID uint64 `gorm:"not null;uniqueIndex:review_product"`
  User User `json:"-"`
  ProductID uint64 `gorm:"not null;uniqueIndex:review_product"`
