@@ -83,6 +83,8 @@ func Register(r *gin.Engine, db *gorm.DB) {
  admin.POST("/coupons",checkout.CreateCoupon)
  admin.GET("/coupons",checkout.Coupons)
  admin.DELETE("/coupons/:id",checkout.DisableCoupon)
+ admin.POST("/products/:id/images",catalog.AddImage)
+ admin.DELETE("/products/:id/images/:image",catalog.DeleteImage)
  admin.POST("/products",catalog.Create)
  admin.PUT("/products/:id",catalog.Update)
  admin.DELETE("/products/:id",catalog.Disable)
