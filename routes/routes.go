@@ -21,6 +21,13 @@ func Register(r *gin.Engine, db *gorm.DB) {
  r.GET("/api/admin/me",middleware.Authenticate(a),middleware.Admin,h.Me)
  catalog:=controllers.Catalog{DB:db}
  customer:=r.Group("/api",middleware.Authenticate(a))
+ shopping:=controllers.Shopping{DB:db}
+ customer.GET("/cart",shopping.Cart)
+ customer.PUT("/cart/:id",shopping.SetCart)
+ customer.DELETE("/cart/:id",shopping.RemoveCart)
+ customer.GET("/wishlist",shopping.Wishlist)
+ customer.PUT("/wishlist/:id",shopping.AddWishlist)
+ customer.DELETE("/wishlist/:id",shopping.RemoveWishlist)
  customer.GET("/products",catalog.List)
  customer.GET("/products/:id",catalog.Detail)
  customer.GET("/categories",catalog.Categories)
