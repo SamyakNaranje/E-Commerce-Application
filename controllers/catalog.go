@@ -28,7 +28,15 @@ func (h Catalog) List(c *gin.Context){
  if q.Count(&total).Error!=nil {c.JSON(500,gin.H{"error":"catalog unavailable"});return}
  items:=[]models.Product{}
  if q.Preload("Category").Order(sort).Limit(20).Offset((page-1)*20).Find(&items).Error!=nil {c.JSON(500,gin.H{"error":"catalog unavailable"});return}
- c.JSON(200,gin.H{"items":items,"total":total,"page":page,"page_size":20})
+ ids:=make([]uint64,0,len(items))
+ for _,p:=range items{ids=append(ids,p.ID)}
+ images:=[]models.ProductImage{}
+ if len(ids)>0{if err:=h.DB.Where("product_id IN ?",ids).Order("id ASC").Find(&images).Error;err!=nil{catalogError(c,err);return}}
+ first:=map[uint64]string{}
+ for _,im:=range images{if _,ok:=first[im.ProductID];!ok{first[im.ProductID]=im.URL}}
+ result:=make([]gin.H,0,len(items))
+ for _,p:=range items{result=append(result,gin.H{"id":p.ID,"name":p.Name,"description":p.Description,"sku":p.SKU,"category_id":p.CategoryID,"category":p.Category,"price_paise":p.PricePaise,"active":p.Active,"image":first[p.ID]})}
+ c.JSON(200,gin.H{"items":result,"total":total,"page":page,"page_size":20})
 }
 func (h Catalog) Detail(c *gin.Context){
  var p models.Product
