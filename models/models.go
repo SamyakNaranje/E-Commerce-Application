@@ -148,3 +148,12 @@ type AuditLog struct {
  Action string
  Resource string
 }
+
+type OrderEvent struct {
+ Base
+ OrderID uint64 `gorm:"not null;index"`
+ Order Order `json:"-"`
+ FromStatus string
+ ToStatus string
+ ActorID uint64
+}
