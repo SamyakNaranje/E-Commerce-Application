@@ -67,6 +67,12 @@ func Register(r *gin.Engine, db *gorm.DB) {
  admin.GET("/returns",returns.AdminList)
  admin.PUT("/returns/:id/status",returns.Update)
  admin.GET("/refunds",returns.Refunds)
+ reviews:=controllers.Reviews{DB:db}
+ customer.GET("/products/:id/reviews",reviews.List)
+ customer.PUT("/products/:id/review",reviews.Save)
+ customer.DELETE("/products/:id/review",reviews.Delete)
+ admin.GET("/reviews",reviews.AdminList)
+ admin.PUT("/reviews/:id/moderation",reviews.Moderate)
  customer.POST("/checkout",checkout.Place)
  admin.POST("/coupons",checkout.CreateCoupon)
  admin.GET("/coupons",checkout.Coupons)
