@@ -50,6 +50,8 @@ func Register(r *gin.Engine, db *gorm.DB) {
  admin.GET("/orders/:id",orders.AdminDetail)
  admin.PUT("/orders/:id/status",orders.AdminStatus)
  delivery:=controllers.Delivery{DB:db}
+ customer.GET("/orders/:id/shipment",delivery.Shipment)
+ admin.PUT("/orders/:id/shipment",delivery.SaveShipment)
  customer.GET("/addresses",delivery.Addresses)
  customer.POST("/addresses",delivery.SaveAddress)
  customer.PUT("/addresses/:id",delivery.SaveAddress)
