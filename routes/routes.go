@@ -13,7 +13,9 @@ import (
 
 func Register(r *gin.Engine, db *gorm.DB) {
  r.Use(middleware.Security())
+ r.Use(middleware.RateLimit(180))
  limit:=middleware.AuthLimit()
+ db=db.Session(&gorm.Session{})
  a:=services.Auth{DB:db}
  h:=controllers.Auth{Service:a}
  r.POST("/api/auth/register",limit,h.Register)
