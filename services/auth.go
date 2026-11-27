@@ -7,6 +7,8 @@ import (
  "net/mail"
  "time"
  "os"
+ "unicode"
+ "context"
  "github.com/golang-jwt/jwt/v5"
  "golang.org/x/crypto/bcrypt"
  "gorm.io/gorm"
@@ -26,6 +28,7 @@ func strongPassword(p string)bool{
  for _,r:=range p{if unicode.IsControl(r){return false};upper=upper||unicode.IsUpper(r);lower=lower||unicode.IsLower(r);digit=digit||unicode.IsDigit(r);symbol=symbol||unicode.IsPunct(r)||unicode.IsSymbol(r)}
  return upper&&lower&&digit&&symbol
 }
+func strongPassword(s string)bool{if len(s)<12||len(s)>72{return false};var upper,lower,digit,symbol bool;for _,r:=range s{switch{case unicode.IsUpper(r):upper=true;case unicode.IsLower(r):lower=true;case unicode.IsDigit(r):digit=true;case unicode.IsPunct(r)||unicode.IsSymbol(r):symbol=true}};return upper&&lower&&digit&&symbol}
 func (a Auth) Register(name,email,password string) error {
  email=strings.ToLower(strings.TrimSpace(email))
  name=strings.TrimSpace(name)
@@ -37,7 +40,7 @@ func (a Auth) Register(name,email,password string) error {
 }
 func (a Auth) Login(email,password string)(string,error){
  var u models.User
- if len(email)>254 || len(password)==0 || len(password)>72 || a.DB.Where("email = ?",strings.ToLower(strings.TrimSpace(email))).First(&u).Error!=nil || !u.Active || bcrypt.CompareHashAndPassword([]byte(u.PasswordHash),[]byte(password))!=nil {return "",errors.New("invalid credentials")}
+ if len(email)>254 || len(password)==0 || len(password)>72 || a.DB.WithContext(ctx).Where("email = ?",strings.ToLower(strings.TrimSpace(email))).First(&u).Error!=nil || !u.Active || bcrypt.CompareHashAndPassword([]byte(u.PasswordHash),[]byte(password))!=nil {return "",errors.New("invalid credentials")}
  key,err:=secret();if err!=nil{return "",err}
  now:=time.Now()
  return jwt.NewWithClaims(jwt.SigningMethodHS256,Claims{UserID:u.ID,RegisteredClaims:jwt.RegisteredClaims{Issuer:"ecommerce",IssuedAt:jwt.NewNumericDate(now),ExpiresAt:jwt.NewNumericDate(now.Add(30*time.Minute))}}).SignedString(key)
@@ -46,10 +49,12 @@ func (a Auth) Verify(raw string)(models.User,error){
  var u models.User
  key,err:=secret();if err!=nil{return u,err}
  if len(raw)>4096{return u,errors.New("invalid token")}
+ if len(raw)>4096{return u,errors.New("invalid token")}
  claims:=&Claims{}
  token,err:=jwt.ParseWithClaims(raw,claims,func(t *jwt.Token)(interface{},error){return key,nil},jwt.WithValidMethods([]string{"HS256"}),jwt.WithIssuer("ecommerce"),jwt.WithExpirationRequired(),jwt.WithIssuedAt())
  if err!=nil || !token.Valid || claims.UserID==0{return u,errors.New("invalid token")}
- err=a.DB.First(&u,claims.UserID).Error
+ ctx,cancel:=context.WithTimeout(context.Background(),5*time.Second);defer cancel()
+ err=a.DB.WithContext(ctx).First(&u,claims.UserID).Error
  if err!=nil || !u.Active{return u,errors.New("inactive account")}
  return u,nil
 }
