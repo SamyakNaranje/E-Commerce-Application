@@ -11,5 +11,6 @@ COPY --from=build /out/shop /app/shop
 COPY --from=build /src/views /app/views
 COPY --from=build /src/assets /app/assets
 USER shop
+ENV BIND_ADDRESS=0.0.0.0
 EXPOSE 8080
 ENTRYPOINT ["/app/shop"]
