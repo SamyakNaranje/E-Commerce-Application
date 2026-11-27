@@ -38,3 +38,8 @@ jobs:
       - run: go test -p 1 -race -cover -timeout 5m ./...
       - run: node --check assets/shop.js
       - run: node --check assets/storefront.js
+
+      - name: Go vulnerability scan
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
