@@ -2,6 +2,7 @@ package controllers
 
 import (
  "net/http"
+ "log/slog"
  "os"
  "github.com/gin-gonic/gin"
  "github.com/SamyakNaranje/E-Commerce-Application/services"
@@ -24,9 +25,10 @@ func cookie(c *gin.Context,value string,age int){
 func (a Auth) Login(c *gin.Context){
  var in credentials
  if c.ShouldBindJSON(&in)!=nil {c.JSON(400,gin.H{"error":"invalid request"});return}
+ slog.Info("authentication attempt","ip",c.ClientIP())
  token,err:=a.Service.Login(in.Email,in.Password)
- if err!=nil {c.JSON(401,gin.H{"error":"login failed"});return}
- cookie(c,token,1800);c.JSON(200,gin.H{"message":"logged in"})
+ if err!=nil {slog.Warn("authentication failed","ip",c.ClientIP());c.JSON(401,gin.H{"error":"login failed"});return}
+ slog.Info("authentication succeeded","ip",c.ClientIP());cookie(c,token,1800);c.JSON(200,gin.H{"message":"logged in"})
 }
 func (a Auth) Logout(c *gin.Context){cookie(c,"",-1);c.JSON(200,gin.H{"message":"logged out"})}
 func (a Auth) Me(c *gin.Context){v,_:=c.Get("user");c.JSON(200,v)}
