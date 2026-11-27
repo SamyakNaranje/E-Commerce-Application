@@ -2,6 +2,7 @@ package middleware
 
 import (
  "net/http"
+ "context"
  "net/url"
  "os"
  "strings"
@@ -19,6 +20,11 @@ func Security() gin.HandlerFunc {
  if os.Getenv("COOKIE_SECURE")!="false"{c.Header("Strict-Transport-Security","max-age=31536000")}
  if strings.HasPrefix(c.Request.URL.Path,"/api/"){
  c.Header("Cache-Control","no-store")
+ ctx,cancel:=context.WithTimeout(c.Request.Context(),15*time.Second);defer cancel()
+ c.Request=c.Request.WithContext(ctx)
+ if len(c.Request.URL.RawQuery)>4096{c.AbortWithStatusJSON(414,gin.H{"error":"query too long"});return}
+ if c.Request.ContentLength>1<<20{c.AbortWithStatusJSON(413,gin.H{"error":"request too large"});return}
+ if origin:=c.GetHeader("Origin");origin!=""&&os.Getenv("APP_ORIGIN")!=""&&origin!=strings.TrimRight(os.Getenv("APP_ORIGIN"),"/"){c.AbortWithStatusJSON(403,gin.H{"error":"origin rejected"});return}
  c.Request.Body=http.MaxBytesReader(c.Writer,c.Request.Body,1<<20)
  switch c.Request.Method{
  case "GET","HEAD","OPTIONS":
@@ -39,17 +45,19 @@ func Security() gin.HandlerFunc {
  }
 }
 type authBucket struct{Count int;Until time.Time}
-func AuthLimit() gin.HandlerFunc{
+func AuthLimit() gin.HandlerFunc{return RateLimit(10)}
+func RateLimit(max int) gin.HandlerFunc{
  var mu sync.Mutex
  buckets:=map[string]authBucket{}
+ var sweep time.Time
  return func(c *gin.Context){
  now:=time.Now();key:=c.ClientIP()
  mu.Lock()
- for k,v:=range buckets{if !now.Before(v.Until){delete(buckets,k)}}
+ if now.After(sweep){for k,v:=range buckets{if !now.Before(v.Until){delete(buckets,k)}};sweep=now.Add(time.Minute)}
  b,exists:=buckets[key]
  if !exists && len(buckets)>=10000{mu.Unlock();c.AbortWithStatusJSON(429,gin.H{"error":"try again later"});return}
- if !exists{b=authBucket{Until:now.Add(time.Minute)}}
- if b.Count>=10{mu.Unlock();c.Header("Retry-After","60");c.AbortWithStatusJSON(429,gin.H{"error":"too many attempts"});return}
+ if !exists||!now.Before(b.Until){b=authBucket{Until:now.Add(time.Minute)}}
+ if b.Count>=max{mu.Unlock();c.Header("Retry-After","60");c.AbortWithStatusJSON(429,gin.H{"error":"too many attempts"});return}
  b.Count++;buckets[key]=b;mu.Unlock();c.Next()
  }
 }
