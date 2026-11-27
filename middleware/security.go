@@ -4,6 +4,10 @@ import (
  "net/http"
  "context"
  "net/url"
+ "strconv"
+ "context"
+ "log"
+ "github.com/SamyakNaranje/E-Commerce-Application/models"
  "os"
  "strings"
  "sync"
@@ -20,6 +24,11 @@ func Security() gin.HandlerFunc {
  if os.Getenv("COOKIE_SECURE")!="false"{c.Header("Strict-Transport-Security","max-age=31536000")}
  if strings.HasPrefix(c.Request.URL.Path,"/api/"){
  c.Header("Cache-Control","no-store")
+ if len(c.Request.URL.RawQuery)>2048 {c.AbortWithStatusJSON(400,gin.H{"error":"query too long"});return}
+ for _,p:=range c.Params{if p.Key=="id"||p.Key=="image"{n,e:=strconv.ParseUint(p.Value,10,63);if e!=nil||n==0{c.AbortWithStatusJSON(400,gin.H{"error":"invalid identifier"});return}}}
+ ctx,cancel:=context.WithTimeout(c.Request.Context(),15*time.Second);defer cancel();c.Request=c.Request.WithContext(ctx)
+ if origin:=c.GetHeader("Origin");origin!="" && os.Getenv("APP_ORIGIN")!="" && origin!=strings.TrimRight(os.Getenv("APP_ORIGIN"),"/"){c.AbortWithStatusJSON(403,gin.H{"error":"origin rejected"});return}
+ if c.Request.ContentLength>1<<20{c.AbortWithStatusJSON(413,gin.H{"error":"request too large"});return}
  ctx,cancel:=context.WithTimeout(c.Request.Context(),15*time.Second);defer cancel()
  c.Request=c.Request.WithContext(ctx)
  if len(c.Request.URL.RawQuery)>4096{c.AbortWithStatusJSON(414,gin.H{"error":"query too long"});return}
@@ -38,7 +47,7 @@ func Security() gin.HandlerFunc {
  if expected!=""{valid=valid&&origin==expected}else{scheme:="http";if c.Request.TLS!=nil{scheme="https"};valid=valid&&u.Scheme==scheme&&strings.EqualFold(u.Host,c.Request.Host)}
  if !valid{c.AbortWithStatusJSON(403,gin.H{"error":"origin rejected"});return}
  }
- if _,e:=c.Cookie("session");e==nil && origin=="" && c.GetHeader("Sec-Fetch-Site")!="same-origin"{c.AbortWithStatusJSON(403,gin.H{"error":"origin required"});return}
+ if origin=="" && c.GetHeader("Sec-Fetch-Site")!="same-origin"{c.AbortWithStatusJSON(403,gin.H{"error":"origin required"});return}
  }
  }
  c.Next()
@@ -46,14 +55,16 @@ func Security() gin.HandlerFunc {
 }
 type authBucket struct{Count int;Until time.Time}
 func AuthLimit() gin.HandlerFunc{return RateLimit(10)}
+func RateLimit(max int) gin.HandlerFunc{return RateLimit(10)}
 func RateLimit(max int) gin.HandlerFunc{
  var mu sync.Mutex
  buckets:=map[string]authBucket{}
  var sweep time.Time
+ var sweep time.Time
  return func(c *gin.Context){
  now:=time.Now();key:=c.ClientIP()
  mu.Lock()
- if now.After(sweep){for k,v:=range buckets{if !now.Before(v.Until){delete(buckets,k)}};sweep=now.Add(time.Minute)}
+ if now.After(sweep){if now.After(sweep){for k,v:=range buckets{if !now.Before(v.Until){delete(buckets,k)}};sweep=now.Add(time.Minute)};sweep=now.Add(time.Minute)}
  b,exists:=buckets[key]
  if !exists && len(buckets)>=10000{mu.Unlock();c.AbortWithStatusJSON(429,gin.H{"error":"try again later"});return}
  if !exists||!now.Before(b.Until){b=authBucket{Until:now.Add(time.Minute)}}
@@ -61,3 +72,12 @@ func RateLimit(max int) gin.HandlerFunc{
  b.Count++;buckets[key]=b;mu.Unlock();c.Next()
  }
 }
+
+func Audit() gin.HandlerFunc{return func(c *gin.Context){
+ c.Next()
+ if !strings.HasPrefix(c.Request.URL.Path,"/api/"){return}
+ if c.Request.Method=="GET"||c.Request.Method=="HEAD"||c.Request.Method=="OPTIONS"{return}
+ var uid uint64
+ if v,ok:=c.Get("user");ok{if u,ok:=v.(models.User);ok{uid=u.ID}}
+ log.Printf("security_event method=%q route=%q actor=%d status=%d ip=%q",c.Request.Method,c.FullPath(),uid,c.Writer.Status(),c.ClientIP())
+}}
