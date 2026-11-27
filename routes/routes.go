@@ -12,7 +12,9 @@ import (
 )
 
 func Register(r *gin.Engine, db *gorm.DB) {
- r.Use(middleware.Security())
+ r.Use(middleware.Security(),middleware.Audit())
+ apiLimit:=middleware.RateLimit(180)
+ r.Use(func(c *gin.Context){if len(c.Request.URL.Path)>=5 && c.Request.URL.Path[:5]=="/api/"{apiLimit(c);return};c.Next()})
  r.Use(middleware.RateLimit(180))
  limit:=middleware.AuthLimit()
  db=db.Session(&gorm.Session{})
