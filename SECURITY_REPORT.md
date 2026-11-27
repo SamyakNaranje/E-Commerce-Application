@@ -27,3 +27,13 @@ Status: partial source review and hardening; not a penetration test or productio
 - Add session revocation, explicit CSRF protection, durable audit logs and distributed rate limiting as needed.
 - Do not claim automatic UPI verification without a verified payment provider.
 - No UI redesign or business workflow change was intended in this pass.
+
+## Additional hardening pass
+- High: API rate limiting (180/min/IP), strict unsafe-method origin checks, numeric path IDs, query/body bounds, context deadline and mutation audit logging: middleware/security.go, routes/routes.go.
+- High: strong registration password validation and JWT size/issued-at checks: services/auth.go.
+- High: bounded DB pool and startup ping: config/database.go.
+- High: HTTPS production configuration validation, private bind, trusted proxy configuration and generic panic recovery: main.go; Nginx TLS redirect template: deploy/nginx.conf.
+- Medium: non-root container bind configuration: Dockerfile.
+- High: govulncheck CI step: .github/workflows/ci.yml. No scan results verified; dependency upgrades remain pending.
+- Reviewed controller SQL query sites use placeholders and allowlisted sort. Full repository/history secret scan and runtime tests remain unverified.
+- Residual: explicit CSRF tokens, strict CSP without inline scripts, JWT revocation, password reset/change, secure binary uploads (not currently supported), DB least-privilege grants and statement timeout, distributed rate limits, durable audit logs and actual HTTPS deployment. Do not claim production readiness until these are resolved and tests pass. Rotate previously shared demo credentials before deployment.
